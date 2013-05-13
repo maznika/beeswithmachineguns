@@ -27,7 +27,9 @@ THE SOFTWARE.
 import bees
 from urlparse import urlparse
 
+#Swap this for Argparse
 from optparse import OptionParser, OptionGroup
+
 
 def parse_options():
     """
@@ -121,7 +123,7 @@ commands:
 
         if options.group == 'default':
             print 'New bees will use the "default" EC2 security group. Please note that port 22 (SSH) is not normally open on this group. You will need to use to the EC2 tools to open it before you will be able to attack.'
- 
+
         bees.up(options.servers, options.group, options.zone, options.instance, options.type, options.login, options.key, options.subnet)
     elif command == 'attack':
         if not options.url:

@@ -42,6 +42,7 @@ STATE_FILENAME = os.path.expanduser('~/.bees')
 
 # Utilities
 
+
 def _read_server_list():
     instance_ids = []
 
@@ -59,6 +60,7 @@ def _read_server_list():
 
     return (username, key_name, zone, instance_ids)
 
+
 def _write_server_list(username, key_name, zone, instances):
     with open(STATE_FILENAME, 'w') as f:
         f.write('%s\n' % username)
@@ -66,29 +68,34 @@ def _write_server_list(username, key_name, zone, instances):
         f.write('%s\n' % zone)
         f.write('\n'.join([instance.id for instance in instances]))
 
+
 def _delete_server_list():
     os.remove(STATE_FILENAME)
+
 
 def _get_pem_path(key):
     return os.path.expanduser('~/.ssh/%s.pem' % key)
 
+
 def _get_region(zone):
-    return zone[:-1] # chop off the "d" in the "us-east-1d" to get the "Region"
-	
+    return zone[:-1]  # chop off the "d" in the "us-east-1d" to get the "Region"
+
+
 def _get_security_group_ids(connection, security_group_names):
-	ids = []
-	# Since we cannot get security groups in a vpc by name, we get all security groups and parse them by name later
-	security_groups = connection.get_all_security_groups()
-	
-	# Parse the name of each security group and add the id of any match to the group list
-	for group in security_groups:
-		for name in security_group_names:
-			if group.name == name:
-				ids.append(group.id)
-		
-	return ids
+    ids = []
+    # Since we cannot get security groups in a vpc by name, we get all security groups and parse them by name later
+    security_groups = connection.get_all_security_groups()
+
+    # Parse the name of each security group and add the id of any match to the group list
+    for group in security_groups:
+        for name in security_group_names:
+            if group.name == name:
+                ids.append(group.id)
+
+    return ids
 
 # Methods
+
 
 def up(count, group, zone, image_id, instance_type, username, key_name, subnet):
     """
@@ -122,7 +129,7 @@ def up(count, group, zone, image_id, instance_type, username, key_name, subnet):
         security_group_ids=_get_security_group_ids(ec2_connection, [group]),
         instance_type=instance_type,
         placement=zone,
-		subnet_id=subnet)
+        subnet_id=subnet)
 
     print 'Waiting for bees to load their machine guns...'
 
@@ -139,11 +146,12 @@ def up(count, group, zone, image_id, instance_type, username, key_name, subnet):
 
         print 'Bee %s is ready for the attack.' % instance.id
 
-    ec2_connection.create_tags(instance_ids, { "Name": "a bee!" })
+    ec2_connection.create_tags(instance_ids, {"Name": "a bee!"})
 
     _write_server_list(username, key_name, zone, reservation.instances)
 
     print 'The swarm has assembled %i bees.' % len(reservation.instances)
+
 
 def report():
     """
@@ -167,6 +175,7 @@ def report():
     for instance in instances:
         print 'Bee %s: %s @ %s' % (instance.id, instance.state, instance.ip_address)
 
+
 def down():
     """
     Shutdown the load testing server.
@@ -189,6 +198,7 @@ def down():
     print 'Stood down %i bees.' % len(terminated_instance_ids)
 
     _delete_server_list()
+
 
 def _attack(params):
     """
@@ -220,7 +230,7 @@ def _attack(params):
         else:
             print 'Bee %i lost sight of the target (connection timed out creating csv_filename).' % params['i']
             return None
-            
+
         if params['post_file']:
             os.system("scp -q -o 'StrictHostKeyChecking=no' %s %s@%s:/tmp/honeycomb" % (params['post_file'], params['username'], params['instance_name']))
             options += ' -k -T "%(mime_type)s; charset=UTF-8" -p /tmp/honeycomb' % params
@@ -264,6 +274,7 @@ def _attack(params):
     except socket.error, e:
         return e
 
+
 def _print_results(results, params, csv_filename):
     """
     Print summarized load-testing results.
@@ -272,9 +283,9 @@ def _print_results(results, params, csv_filename):
     exception_bees = [r for r in results if type(r) == socket.error]
     complete_bees = [r for r in results if r is not None and type(r) != socket.error]
 
-    timeout_bees_params = [p for r,p in zip(results, params) if r is None]
-    exception_bees_params = [p for r,p in zip(results, params) if type(r) == socket.error]
-    complete_bees_params = [p for r,p in zip(results, params) if r is not None and type(r) != socket.error]
+    timeout_bees_params = [p for r, p in zip(results, params) if r is None]
+    exception_bees_params = [p for r, p in zip(results, params) if type(r) == socket.error]
+    complete_bees_params = [p for r, p in zip(results, params) if r is not None and type(r) != socket.error]
 
     num_timeout_bees = len(timeout_bees)
     num_exception_bees = len(exception_bees)
@@ -311,17 +322,17 @@ def _print_results(results, params, csv_filename):
     # the completed bees in proportion to the number of
     # complete_requests they have
     n_final_sample = 100
-    sample_size = 100*n_final_sample
-    n_per_bee = [int(r['complete_requests']/total_complete_requests*sample_size)
+    sample_size = 100 * n_final_sample
+    n_per_bee = [int(r['complete_requests'] / total_complete_requests * sample_size)
                  for r in complete_bees]
     sample_response_times = []
     for n, r in zip(n_per_bee, complete_bees):
         cdf = r['request_time_cdf']
         for i in range(n):
-            j = int(random.random()*len(cdf))
+            j = int(random.random() * len(cdf))
             sample_response_times.append(cdf[j]["Time in ms"])
     sample_response_times.sort()
-    request_time_cdf = sample_response_times[0:sample_size:sample_size/n_final_sample]
+    request_time_cdf = sample_response_times[0:sample_size:sample_size / n_final_sample]
 
     print '     50%% responses faster than:\t%f [ms]' % request_time_cdf[49]
     print '     90%% responses faster than:\t%f [ms]' % request_time_cdf[89]
@@ -349,7 +360,8 @@ def _print_results(results, params, csv_filename):
                 for r in results:
                     row.append(r['request_time_cdf'][i]["Time in ms"])
                 writer.writerow(row)
-    
+
+
 def attack(url, n, c, **options):
     """
     Test the root url of this site.
@@ -363,7 +375,7 @@ def attack(url, n, c, **options):
             stream = open(csv_filename, 'w')
         except IOError, e:
             raise IOError("Specified csv_filename='%s' is not writable. Check permissions or specify a different filename and try again." % csv_filename)
-    
+
     if not instance_ids:
         print 'No bees are ready to attack.'
         return
